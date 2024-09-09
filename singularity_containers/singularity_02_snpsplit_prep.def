@@ -1,0 +1,62 @@
+Bootstrap: docker
+From: centos:7
+
+%post
+    # Update and install necessary packages
+    yum -y update
+    yum -y install epel-release
+    yum -y groupinstall "Development Tools"
+    yum -y install wget curl java-1.8.0-openjdk-devel zlib-devel ncurses-devel bzip2-devel xz-devel openssl-devel
+    yum -y install perl-Env
+
+    # Set environment variables
+    export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+    export PATH=$JAVA_HOME/bin:$PATH
+
+    # Install GATK
+    mkdir /opt/gatk
+    wget -O /opt/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 https://storage.googleapis.com/gatk-software/package-archive/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2
+    tar -xvf /opt/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 -C /opt/gatk
+    rm /opt/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2
+
+
+    # Install Picard
+    mkdir /opt/picard
+    wget -O /opt/picard/picard.jar https://github.com/broadinstitute/picard/releases/download/2.18.27/picard.jar
+
+    # Install STAR
+    wget -O /opt/STAR-2.7.1a.tar.gz https://github.com/alexdobin/STAR/archive/2.7.1a.tar.gz
+    tar -xzf /opt/STAR-2.7.1a.tar.gz -C /opt
+    rm /opt/STAR-2.7.1a.tar.gz
+
+    # Install Bowtie2
+    wget -O /opt/bowtie2-2.3.4.2-linux-x86_64.zip https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.4.2/bowtie2-2.3.4.2-linux-x86_64.zip/download
+    unzip /opt/bowtie2-2.3.4.2-linux-x86_64.zip -d /opt
+    rm /opt/bowtie2-2.3.4.2-linux-x86_64.zip
+
+    # Install Samtools
+    wget -O /opt/samtools-1.9.tar.bz2 https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2
+    tar -xjf /opt/samtools-1.9.tar.bz2 -C /opt
+    rm /opt/samtools-1.9.tar.bz2
+    cd /opt/samtools-1.9
+    make
+
+    # Install RSEM
+    wget -O /opt/RSEM-1.3.2.tar.gz https://github.com/deweylab/RSEM/archive/v1.3.2.tar.gz
+    tar -xzf /opt/RSEM-1.3.2.tar.gz -C /opt
+    rm /opt/RSEM-1.3.2.tar.gz
+    cd /opt/RSEM-1.3.2
+    make
+
+%environment
+    # Set environment variables for installed tools
+    export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+    export GATK_HOME=/opt/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef
+    export PICARD_HOME=/opt/picard
+    export STAR_HOME=/opt/STAR-2.7.1a
+    export BOWTIE2_HOME=/opt/bowtie2-2.3.4.2-linux-x86_64
+    export SAMTOOLS_HOME=/opt/samtools-1.9
+    export RSEM_HOME=/opt/RSEM-1.3.2
+
+    # Add installed tools to PATH
+    export PATH=$JAVA_HOME/bin:$GATK_HOME:$PICARD_HOME:$STAR_HOME/bin/Linux_x86_64:$BOWTIE2_HOME:$SAMTOOLS_HOME:$RSEM_HOME:$PATH

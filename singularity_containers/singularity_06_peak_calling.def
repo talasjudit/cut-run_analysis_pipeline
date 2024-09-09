@@ -1,0 +1,97 @@
+Bootstrap: docker
+From: almalinux:8
+
+%post
+    # Install system utilities
+    yum -y update
+    yum -y install wget curl java-1.8.0-openjdk-devel zlib-devel ncurses-devel bzip2-devel xz-devel openssl-devel git which make perl-Env epel-release
+    yum -y groupinstall "Development Tools"
+    yum -y install gcc gcc-c++ gcc-gfortran
+
+    # Confirm ncurses-devel is installed
+    yum -y install ncurses-devel
+
+    # Install Miniconda
+    curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda
+    rm Miniconda3-latest-Linux-x86_64.sh
+
+    # Initialize Conda for the installation process
+    . /opt/miniconda/etc/profile.d/conda.sh
+
+    # Add Conda-Forge to the channels
+    conda config --add channels conda-forge
+    conda config --add channels bioconda
+
+    # Install compilers via conda to ensure compatibility
+    conda install -y -c conda-forge gxx_linux-64 gcc_linux-64 gfortran_linux-64
+
+    # Install R and its dependencies
+    conda install -y -c conda-forge r-base r-essentials
+
+    # Explicitly update PATH to include conda bin
+    export PATH="/opt/miniconda/bin:$PATH"
+
+    # Check if R is installed in the conda bin directory
+    if [ ! -f "/opt/miniconda/bin/R" ]; then
+        echo "R executable is not found in /opt/miniconda/bin"
+        exit 1
+    fi
+
+    # Check if R can be called successfully
+    /opt/miniconda/bin/R --version || { echo "R --version failed"; exit 1; }
+
+    # Set environment variables for the compilers
+    CC=/opt/miniconda/bin/x86_64-conda-linux-gnu-cc
+    CXX=/opt/miniconda/bin/x86_64-conda-linux-gnu-c++
+    FC=/opt/miniconda/bin/x86_64-conda-linux-gnu-gfortran
+    CFLAGS="-I/opt/miniconda/include"
+    LDFLAGS="-L/opt/miniconda/lib"
+    export CC CXX FC CFLAGS LDFLAGS
+
+    # Install R packages that require compilation
+    conda install -y -c conda-forge r-statmod r-locfit
+
+    # Install BiocManager
+    /opt/miniconda/bin/R -e "install.packages('BiocManager', repos='https://cloud.r-project.org/')"
+
+    # Use BiocManager to install Bioconductor packages
+    /opt/miniconda/bin/R -e "BiocManager::install('DESeq2')"
+    /opt/miniconda/bin/R -e "BiocManager::install('edgeR')"
+
+    # Install Samtools via Conda
+    conda install -y -c bioconda samtools
+
+    # Install HOMER
+    mkdir /opt/homer
+    cd /opt/homer
+    wget http://homer.ucsd.edu/homer/configureHomer.pl
+    perl configureHomer.pl -install
+    rm configureHomer.pl
+
+    # Set the correct permissions for all users to source conda.sh
+    chmod a+rX /opt/miniconda/etc/profile.d/conda.sh
+
+
+%environment
+    # Source conda.sh from the new location
+    . /opt/miniconda/etc/profile.d/conda.sh
+
+    export PATH="/opt/miniconda/bin:/opt/homer/bin:$PATH"
+    export HOMER_HOME=/opt/homer/bin
+    export LC_ALL=en_GB.UTF-8
+    export LANG=en_GB.UTF-8
+    export LANGUAGE=en_GB.UTF-8
+    export PERL5LIB="/usr/lib64/perl5:/usr/share/perl5:/usr/lib64/perl5/vendor_perl"
+    export CC=/opt/miniconda/bin/x86_64-conda-linux-gnu-cc
+    export CXX=/opt/miniconda/bin/x86_64-conda-linux-gnu-c++
+    export FC=/opt/miniconda/bin/x86_64-conda-linux-gnu-gfortran
+    export CFLAGS="-I/opt/miniconda/include"
+    export LDFLAGS="-L/opt/miniconda/lib"
+
+%runscript
+    # Source conda.sh to set up the environment
+    . /opt/miniconda/etc/profile.d/conda.sh
+
+    # Now you can execute the command passed to the container
+    exec "$@"

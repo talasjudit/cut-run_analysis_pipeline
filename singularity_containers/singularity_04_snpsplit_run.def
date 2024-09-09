@@ -1,0 +1,40 @@
+Bootstrap: docker
+From: centos:7
+
+%post
+    # Update and install necessary packages
+    yum -y update
+    yum -y groupinstall "Development Tools"
+    yum -y install wget curl zlib-devel ncurses-devel bzip2-devel xz-devel openssl-devel perl perl-Env perl-Test-More perl-Bio-Perl
+
+    # Set locale
+    localedef -i en_GB -f UTF-8 en_GB.UTF-8
+
+    # Install Samtools
+    wget -O /opt/samtools-1.9.tar.bz2 https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2
+    tar -xjf /opt/samtools-1.9.tar.bz2 -C /opt
+    rm /opt/samtools-1.9.tar.bz2
+    cd /opt/samtools-1.9
+    make
+
+    # Install Bowtie2
+    wget -O /opt/bowtie2-2.3.4.2-linux-x86_64.zip https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.4.2/bowtie2-2.3.4.2-linux-x86_64.zip/download
+    unzip /opt/bowtie2-2.3.4.2-linux-x86_64.zip -d /opt
+    rm /opt/bowtie2-2.3.4.2-linux-x86_64.zip
+
+    # Install SNPsplit
+    wget -O /opt/SNPsplit_v0.3.4.tar.gz https://github.com/FelixKrueger/SNPsplit/archive/0.3.4.tar.gz
+    tar -xzf /opt/SNPsplit_v0.3.4.tar.gz -C /opt
+    rm /opt/SNPsplit_v0.3.4.tar.gz
+
+
+%environment
+    # Set environment variables for installed tools
+
+    export SAMTOOLS_HOME=/opt/samtools-1.9
+    export BOWTIE2_HOME=/opt/bowtie2-2.3.4.2-linux-x86_64
+    export SNPSPLIT_HOME=/opt/SNPsplit-0.3.4
+    export PATH="/usr/bin/perl:$SAMTOOLS_HOME:$BOWTIE2_HOME:$SNPSPLIT_HOME:$PATH"
+    
+    # Perl lib paths
+    export PERL5LIB="/usr/lib64/perl5:/usr/share/perl5:/usr/lib64/perl5/vendor_perl:/usr/share/perl5/vendor_perl"
